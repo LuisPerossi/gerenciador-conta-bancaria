@@ -1,13 +1,34 @@
-import exception.OperacaoException;
-import model.ContaCorrente;
+import exception.CarregarContasException;
+import exception.SalvarContasException;
 import service.ContaService;
+import view.ContaGUI;
+import view.MensagemGUI;
 
-import javax.swing.*;
+void main() {
+    try {
+        ContaService cs = new ContaService();
+        cs.lerContas();
 
+        ContaGUI gui = new ContaGUI(cs);
+        gui.setVisible(true);
+    } catch (CarregarContasException e) {
+        MensagemGUI.exibirErro("Erro ao carregar contas:\n" + e.getMessage());
+    } catch (SalvarContasException e) {
+        MensagemGUI.exibirErro("Erro ao salvar contas:\n" + e.getMessage());
+    } catch (Exception e) {
+        MensagemGUI.exibirErro("Erro inesperado:\n" + e.getMessage());
+    }
+}
+
+/*
 void main() {
     ContaService cs = new ContaService();
 
     try {
+        cs.lerContas();
+        for (ContaCorrente c : cs.contas)
+            System.out.println(c.getTitular());
+
         ContaCorrente conta = cs.lerConta("conta.txt");
 
         JOptionPane.showMessageDialog(
@@ -44,3 +65,4 @@ void main() {
         );
     }
 }
+*/

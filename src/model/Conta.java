@@ -13,6 +13,11 @@ public abstract class Conta {
         this.saldo = saldo;
     }
 
+    @Override
+    public String toString() {
+        return "Nª: " + this.numero + " Titular: " + this.titular + " Saldo: " + this.saldo;
+    }
+
     public void depositar(double valor) throws OperacaoException {
         if (valor < 0) {
             throw new OperacaoException("O depósito deve ser positivo");
