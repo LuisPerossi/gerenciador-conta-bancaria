@@ -13,37 +13,27 @@ public abstract class Conta {
         this.saldo = saldo;
     }
 
-    @Override
-    public String toString() {
-        return "Nª: " + this.numero + " Titular: " + this.titular + " Saldo: " + this.saldo;
-    }
-
     public void depositar(double valor) throws OperacaoException {
         if (valor < 0) {
             throw new OperacaoException("O depósito deve ser positivo");
         }
 
         this.saldo += valor;
-        System.out.println("Depósito realizado com sucesso");
     }
 
     public abstract void sacar(double valor) throws OperacaoException;
 
-    public void imprimirDados() {
-        System.out.println("Dados da conta:");
-        System.out.println("Nº: " + this.numero);
-        System.out.println("Titular: " + this.titular);
-        System.out.println("Saldo: " + this.saldo);
+    @Override
+    public String toString() {
+        return "Nª: " + this.numero + " Titular: " + this.titular + " Saldo: " + String.format("%.2f", this.saldo);
     }
 
     public int getNumero() {
         return numero;
     }
-
     public String getTitular() {
         return titular;
     }
-
     public double getSaldo() {
         return saldo;
     }
