@@ -30,7 +30,7 @@ public class ContaGUI extends JFrame {
         this.setTitle("Gerenciador de Contas Bancárias");
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setLayout(new BorderLayout());
-        this.setSize(650, 400);
+        this.setSize(700, 400);
         this.setResizable(false);
 
         //Criando painéis
@@ -54,6 +54,7 @@ public class ContaGUI extends JFrame {
         //OperacoesContaPanel
         operacoesContaPanel.getBotaoSacar().addActionListener(this::sacar);
         operacoesContaPanel.getBotaoDepositar().addActionListener(this::depositar);
+        operacoesContaPanel.getBotaoTransefrir().addActionListener(this::transferir);
         operacoesContaPanel.getBotaoTarifa().addActionListener(this::calcularTarifa);
         operacoesContaPanel.getBotaoAdicionar().addActionListener(this::adicionarConta);
         operacoesContaPanel.getBotaoRemover().addActionListener(this::removerConta);
@@ -67,6 +68,49 @@ public class ContaGUI extends JFrame {
         ordenarContasPanel.getBotaoOrdenarSaldo().addActionListener(this::ordenarPorSaldo);
         ordenarContasPanel.getBotaoOrdenarTitular().addActionListener(this::ordenarPorTitular);
         ordenarContasPanel.getBotaoOrdenarPadrao().addActionListener(this::ordenarPadrao);
+    }
+
+    private void transferir(ActionEvent e) {
+        ContaCorrente contaOrigem = listaContasPanel.getContaSelecionada();
+
+        if (contaOrigem == null) {
+            MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
+            return;
+        }
+
+        String numeroDestinoString = MensagemGUI.receberInput("Número da conta de destino:");
+        if (numeroDestinoString == null) { return; }
+
+        String valorString = MensagemGUI.receberInput("Valor para transferência:");
+        if (valorString == null) { return; }
+
+        try {
+            int numeroOrigem = contaOrigem.getNumero();
+            int numeroDestino = Integer.parseInt(numeroDestinoString);
+            ContaCorrente contaDestino = ContaDAO.buscarPorNumero(numeroDestino);
+
+            if (contaDestino == null) {
+                throw new Exception(String.format(
+                        "Não foi possível encontrar a conta de destino: %s.", numeroDestino
+                ));
+            }
+
+            double valor = Double.parseDouble(valorString);
+
+            //Validam a transferencia
+            contaOrigem.sacar(valor);
+            contaDestino.depositar(valor);
+
+            //Realiza a transferencia e recarrega as contas
+            ContaDAO.transferir(numeroOrigem, numeroDestino, valor);
+            cs.carregarContas();
+            listaContasPanel.carregarContas(cs.contas);
+
+            MensagemGUI.exibirMensagem("Sucesso ao transferir!");
+        } catch (Exception ex) {
+            MensagemGUI.exibirErro("Erro ao transferir:\n" + ex.getMessage());
+        }
+
     }
 
     private void sacar(ActionEvent e) {

@@ -85,4 +85,42 @@ public class ContaDAO {
             if (linhasAfetadas == 0) { throw new SQLException("Conta não encontrada: " + numero); }
         }
     }
+
+    public static void transferir(int numeroOrigem, int numeroDestino, double valor) throws SQLException {
+        String debitoSql = "UPDATE contas SET saldo = saldo - ? WHERE numero = ?";
+        String creditoSql = "UPDATE contas SET saldo = saldo + ? WHERE numero = ?";
+
+        try (
+            Connection conn = Conexao.getConnection();
+            PreparedStatement debitoStmt = conn.prepareStatement(debitoSql);
+            PreparedStatement creditoStmt = conn.prepareStatement(creditoSql);
+        ) {
+            conn.setAutoCommit(false);
+
+            try {
+                debitoStmt.setDouble(1, valor);
+                debitoStmt.setInt(2, numeroOrigem);
+                int linhasDebito = debitoStmt.executeUpdate();
+
+                if (linhasDebito == 0) {
+                    throw new SQLException(String.format("Conta de origem não encontrada: %s.", numeroOrigem));
+                }
+
+                creditoStmt.setDouble(1, valor);
+                creditoStmt.setInt(2, numeroDestino);
+                int linhasCredito = creditoStmt.executeUpdate();
+
+                if (linhasCredito == 0) {
+                    throw new SQLException(String.format("Conta de destino não encontrada: %s.", numeroDestino));
+                }
+
+                conn.commit();
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
 }
