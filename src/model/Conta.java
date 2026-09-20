@@ -15,7 +15,7 @@ public abstract class Conta {
 
     public void depositar(double valor) throws OperacaoException {
         if (valor < 0) {
-            throw new OperacaoException("O depósito deve ser positivo");
+            throw new OperacaoException("O valor do depósito deve ser positivo.");
         }
 
         this.saldo += valor;

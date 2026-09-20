@@ -23,4 +23,21 @@ public final class MensagemGUI {
     public static void exibirObjeto(Object objeto, String titulo) {
         JOptionPane.showMessageDialog(pai, objeto, titulo, JOptionPane.PLAIN_MESSAGE);
     }
+
+    public static String receberInput(String mensagem) {
+        return JOptionPane.showInputDialog(pai, mensagem);
+    }
+
+    public static int receberEscolha(String[] opcoes, String titulo, String mensagem) {
+        return JOptionPane.showOptionDialog(
+                pai,
+                mensagem,
+                titulo,
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                opcoes,
+                opcoes[0]
+        );
+    }
 }

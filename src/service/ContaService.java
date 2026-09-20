@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Predicate;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
@@ -76,5 +77,27 @@ public class ContaService {
                 TreeMap::new,
                 toList()
             ));
+    }
+
+    public List<ContaCorrente> filtrarMaiorCincoMil() {
+        Predicate<ContaCorrente> maiorCincoMil = (c) -> c.getSaldo() > 5000;
+        return this.contas.stream().filter(maiorCincoMil).toList();
+    }
+
+    public List<ContaCorrente> filtrarNumeroPar() {
+        Predicate<ContaCorrente> numeroPar = (c) -> c.getNumero() % 2 == 0;
+        return this.contas.stream().filter(numeroPar).toList();
+    }
+
+    public List<ContaCorrente> ordenarPorSaldoDecrescente() {
+        Comparator<Conta> porSaldoDecrescente = (a, b) -> Double.compare(a.getSaldo(), b.getSaldo());
+        return this.contas.stream().sorted(porSaldoDecrescente).toList();
+    }
+
+    public List<ContaCorrente> ordenarPorTitular() {
+        Comparator<ContaCorrente> porTitular =
+                (a, b) ->
+                        String.CASE_INSENSITIVE_ORDER.compare(a.getTitular(), b.getTitular());
+        return this.contas.stream().sorted(porTitular).toList();
     }
 }

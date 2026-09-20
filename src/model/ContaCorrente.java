@@ -11,11 +11,11 @@ public class ContaCorrente extends Conta {
     @Override
     public void sacar(double valor) throws OperacaoException {
         if (valor < 0) {
-            throw new OperacaoException("O valor do saque deve ser positivo");
+            throw new OperacaoException("O valor do saque deve ser positivo.");
         }
 
         if (valor > this.saldo) {
-            throw new OperacaoException("Saldo insuficiente para saque");
+            throw new OperacaoException("Saldo insuficiente para saque.");
         }
 
         this.saldo -= valor;

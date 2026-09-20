@@ -4,32 +4,53 @@ import exception.OperacaoException;
 import exception.SalvarContasException;
 import model.ContaCorrente;
 import service.ContaService;
+import service.TarifaService;
+import strategy.TarifaStrategy;
+import view.ContaPanels.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.Map;
 
 public class ContaGUI extends JFrame {
-    private DefaultListModel<ContaCorrente> listModel = new DefaultListModel<>();
-    private JList<ContaCorrente> contaList = new JList<>(listModel);
-    private ContaCorrente contaSelecionada;
     private final ContaService cs;
+    private final ListaContasPanel listaContasPanel;
+    private final OperacoesContaPanel operacoesContaPanel;
+    private final RelatoriosContasPanel relatoriosContasPanel;
+    private final OrdenarContasPanel ordenarContasPanel;
 
     public ContaGUI(ContaService cs) {
-        //Configurações da janela
-        setTitle("Gerenciador de Contas Bancárias");
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setLayout(new BorderLayout());
-        setSize(400, 400);
-
-        //Inicializando o ContaService e carregando contas
+        //Inicializando o ContaService
         this.cs = cs;
-        carregarContas();
 
-        //Adiciona um listener para salvar as contas ao fechar
+        //Configurações da janela
+        this.setTitle("Gerenciador de Contas Bancárias");
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        this.setLayout(new BorderLayout());
+        this.setSize(650, 400);
+        this.setResizable(false);
+
+        //Criando painéis
+        listaContasPanel = new ListaContasPanel();
+        operacoesContaPanel = new OperacoesContaPanel();
+        relatoriosContasPanel = new RelatoriosContasPanel();
+        ordenarContasPanel = new OrdenarContasPanel();
+
+        //Configurando a GUI
+        listaContasPanel.carregarContas(cs.contas);
+        this.configurarEventos();
+
+        //Adicionando painéis
+        this.add(operacoesContaPanel, BorderLayout.NORTH);
+        this.add(ordenarContasPanel, BorderLayout.WEST);
+        this.add(listaContasPanel, BorderLayout.CENTER);
+        this.add(relatoriosContasPanel, BorderLayout.SOUTH);
+
+        //Adicionando um listener para salvar as contas ao fechar
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -41,340 +62,235 @@ public class ContaGUI extends JFrame {
             }
             }
         });
-
-        //Selecionar contas ao clicar
-        contaList.addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) { return; }
-            contaSelecionada = contaList.getSelectedValue();
-        });
-
-        //Painel da lista de contas
-        JScrollPane painelListaContas = new JScrollPane(contaList);
-        painelListaContas.setBorder(BorderFactory.createTitledBorder("Contas"));
-
-        //Botões de operação
-        //Botão de saque
-        JButton botaoSacar = new JButton("Sacar");
-
-        botaoSacar.addActionListener(e -> {
-            if (contaSelecionada == null) {
-                MensagemGUI.exibirAlerta("Nenhuma conta selecionada");
-                return;
-            }
-
-            String valorSaqueString = JOptionPane.showInputDialog("Valor para saque:");
-
-            try {
-                double valorSaque = Double.parseDouble(valorSaqueString);
-                contaSelecionada.sacar(valorSaque);
-                MensagemGUI.exibirMensagem("Sucesso ao sacar!");
-                carregarContas();
-            } catch (OperacaoException ex) {
-                MensagemGUI.exibirErro("Erro de operação:\n" + ex.getMessage());
-            } catch (Exception ex) {
-                MensagemGUI.exibirErro("Erro ao sacar:\n" + ex.getMessage());
-            }
-        });
-
-        //Botão de deposito
-        JButton botaoDepositar = new JButton("Depositar");
-
-        botaoDepositar.addActionListener(e -> {
-            if (contaSelecionada == null) {
-                MensagemGUI.exibirAlerta("Nenhuma conta selecionada");
-                return;
-            }
-
-            String valorDepositoString = JOptionPane.showInputDialog("Valor para depósito:");
-
-            try {
-                double valorDeposito = Double.parseDouble(valorDepositoString);
-                contaSelecionada.depositar(valorDeposito);
-                MensagemGUI.exibirMensagem("Sucesso ao depositar!");
-                carregarContas();
-            } catch (OperacaoException ex) {
-                MensagemGUI.exibirErro("Erro de operação:\n" + ex.getMessage());
-            } catch (Exception ex) {
-                MensagemGUI.exibirErro("Erro ao depositar:\n" + ex.getMessage());
-            }
-        });
-
-        //Botão de adicionar conta
-        JButton botaoAdicionarConta = new JButton("Adicionar Conta");
-
-        botaoAdicionarConta.addActionListener(e -> {
-            JTextField campoNumero = new JTextField();
-            JTextField campoTitular = new JTextField();
-            JPanel formulario = new JPanel(new GridLayout(2, 2));
-
-            //Adicionar bloqueio de duplicidade no futuro
-            formulario.add(new JLabel("Número da conta:"));
-            formulario.add(campoNumero);
-
-            formulario.add(new JLabel("Titular da conta:"));
-            formulario.add(campoTitular);
-
-            int resultado = JOptionPane.showConfirmDialog(
-                    this,
-                    formulario,
-                    "Adicionar Conta",
-                    JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.PLAIN_MESSAGE
-            );
-
-            if (resultado != JOptionPane.OK_OPTION) { return; }
-
-            try {
-                int numero = Integer.parseInt(campoNumero.getText());
-                String titular = campoTitular.getText().trim();
-
-                if (titular.isEmpty()) {
-                    throw new Exception("O titular não pode ser vazio");
-                }
-
-                ContaCorrente c = new ContaCorrente(numero, titular, 0);
-                cs.contas.add(c);
-                carregarContas();
-
-                MensagemGUI.exibirMensagem("Conta adicionada com sucesso!");
-            } catch (Exception ex) {
-                MensagemGUI.exibirErro("Erro ao adicionar conta:\n" + ex.getMessage());
-            }
-        });
-
-        //Botões adicionais
-        //Botão filtrar > 10.000
-        JButton botaoFiltrarDezMil = new JButton("Filtrar > 10.000");
-
-        botaoFiltrarDezMil.addActionListener(e -> {
-            List<ContaCorrente> contasFiltradas = cs.filtrarMaiorDezMil();
-
-            StringBuilder resultado = new StringBuilder();
-            for (ContaCorrente c : contasFiltradas) {
-                resultado.append(c).append("\n");
-            }
-
-            JTextArea areaTexto = new JTextArea(resultado.toString());
-            areaTexto.setEditable(false);
-
-            JScrollPane scrollPane = new JScrollPane(areaTexto);
-            scrollPane.setPreferredSize(new Dimension(300, 250));
-
-            MensagemGUI.exibirObjeto(scrollPane, "Contas com saldo maior que 10.000");
-        });
-
-        //Botão de saldo total
-        JButton botaoCalcularTotal = new JButton("Calcular Total");
-
-        botaoCalcularTotal.addActionListener(e -> {
-            double total = cs.calcularTotal();
-            String mensagem = String.format("Saldo total: R$ %.2f", total);
-            MensagemGUI.exibirMensagem(mensagem);
-        });
-
-        //Botão agrupar por saldo
-        JButton botaoAgruparSaldos = new JButton("Agrupar Saldos");
-
-        botaoAgruparSaldos.addActionListener(e -> {
-            Map<String, List<ContaCorrente>> contasAgrupadas = cs.agruparSaldos();
-            StringBuilder resultado = new StringBuilder();
-
-            contasAgrupadas.forEach((grupo, contas) -> {
-                resultado.append(String.format("==== %s ====", grupo)).append("\n");
-
-                for (ContaCorrente c : contas) {
-                    resultado.append(c).append("\n");
-                }
-            });
-
-            JTextArea areaTexto = new JTextArea(resultado.toString());
-            areaTexto.setEditable(false);
-
-            JScrollPane scrollPane = new JScrollPane(areaTexto);
-            scrollPane.setPreferredSize(new Dimension(300, 250));
-
-            MensagemGUI.exibirObjeto(scrollPane, "Contas com saldo maior que 10.000");
-        });
-
-
-        //Painel de opções da conta
-        JPanel painelOpcoesConta = new JPanel();
-        painelOpcoesConta.add(botaoSacar);
-        painelOpcoesConta.add(botaoDepositar);
-        painelOpcoesConta.add(botaoAdicionarConta);
-
-        //Painel de adicionais
-        JPanel painelAdicionais = new JPanel();
-        painelAdicionais.add(botaoFiltrarDezMil);
-        painelAdicionais.add(botaoCalcularTotal);
-        painelAdicionais.add(botaoAgruparSaldos);
-
-        //Adicionando ao painel
-        add(painelOpcoesConta, BorderLayout.NORTH);
-        add(painelListaContas, BorderLayout.CENTER);
-        add(painelAdicionais, BorderLayout.SOUTH);
-
-
-        /*
-        //Painel da lista de contas
-        JScrollPane painelListaContas = new JScrollPane(contaList);
-        painelListaContas.setBorder(BorderFactory.createTitledBorder("Contas"));
-
-        //Painel de opções (Botões)
-        JButton botaoSacar = new JButton("Sacar");
-        JButton botaoDepositar = new JButton("Depositar");
-        JButton botaoAdicionarConta = new JButton("Adicionar Conta");
-
-        //Botão de saque
-        botaoSacar.addActionListener(e -> {
-            if (contaSelecionada == null) {
-                MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
-                return;
-            }
-
-            String valorSaqueString = JOptionPane.showInputDialog("Valor para saque:");
-
-            try {
-                double valorSaque = Double.parseDouble(valorSaqueString);
-                contaSelecionada.sacar(valorSaque);
-                MensagemGUI.exibirMensagem("Sucesso ao sacar!");
-                carregarContas();
-            } catch (Exception ex) {
-                MensagemGUI.exibirErro("Erro ao sacar:\n" + ex.getMessage());
-            }
-        });
-
-        //Botão de depósito
-        botaoDepositar.addActionListener(e -> {
-            if (contaSelecionada == null) {
-                MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
-                return;
-            }
-
-            String valorDepositoString = JOptionPane.showInputDialog("Valor para depósito:");
-
-            try {
-                double valorDeposito = Double.parseDouble(valorDepositoString);
-                contaSelecionada.depositar(valorDeposito);
-                MensagemGUI.exibirMensagem("Sucesso ao depositar!");
-                carregarContas();
-            } catch (Exception ex) {
-                MensagemGUI.exibirErro("Erro ao depositar:\n" + ex.getMessage());
-            }
-        });
-
-        //Botão de adicionar conta
-        botaoAdicionarConta.addActionListener(e -> {
-            JTextField campoNumero = new JTextField();
-            JTextField campoTitular = new JTextField();
-            JPanel formulario = new JPanel(new GridLayout(2, 2));
-
-            //Adicionar bloqueio de duplicidade no futuro
-            formulario.add(new JLabel("Número da conta:"));
-            formulario.add(campoNumero);
-
-            formulario.add(new JLabel("Titular da conta:"));
-            formulario.add(campoTitular);
-
-            int resultado = JOptionPane.showConfirmDialog(
-                    this,
-                    formulario,
-                    "Adicionar Conta",
-                    JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.PLAIN_MESSAGE
-            );
-
-            if (resultado != JOptionPane.OK_OPTION) { return; }
-
-            try {
-                int numero = Integer.parseInt(campoNumero.getText());
-                String titular = campoTitular.getText().trim();
-
-                if (titular.isEmpty()) {
-                    throw new Exception("O titular não pode ser vazio");
-                }
-
-                ContaCorrente c = new ContaCorrente(numero, titular, 0);
-                cs.contas.add(c);
-                carregarContas();
-
-                MensagemGUI.exibirMensagem("Conta adicionada com sucesso");
-            } catch (Exception ex) {
-                MensagemGUI.exibirErro("Erro ao adicionar conta:\n" + ex.getMessage());
-            }
-        });
-
-        //Painel de opções da conta
-        JPanel painelBotoes = new JPanel();
-        painelBotoes.setBorder(BorderFactory.createTitledBorder("Opções"));
-        painelBotoes.add(botaoAdicionarConta);
-        painelBotoes.add(botaoSacar);
-        painelBotoes.add(botaoDepositar);
-
-        //Painel de adicionais (Botões)
-        JButton botaoFiltrarMaiorDezMil = new JButton("> 10.000");
-        JButton botaoCalcularTotal = new JButton("Saldo total");
-        JButton botaoAgruparSaldos = new JButton("Agrupar por saldo");
-
-        //Botão de filtrar > 10k
-        botaoFiltrarMaiorDezMil.addActionListener(e -> {
-            List<ContaCorrente> contasFiltradas = cs.filtrarMaiorDezMil();
-            StringBuilder resultado = new StringBuilder();
-
-            for (ContaCorrente c : contasFiltradas) {
-                resultado.append(c).append("\n");
-            }
-
-            JTextArea areaTexto = new JTextArea(resultado.toString());
-            areaTexto.setEditable(false);
-            areaTexto.setLineWrap(true);
-            areaTexto.setWrapStyleWord(true);
-
-            JScrollPane painelScroll = new JScrollPane(areaTexto);
-            painelScroll.setPreferredSize(new Dimension(350, 250));
-
-            JPanel painelContas = new JPanel();
-            painelContas.setLayout(new BoxLayout(painelContas, BoxLayout.Y_AXIS));
-            painelContas.add(new JLabel("Contas com saldo maior que R$10.000"));
-            painelContas.add(painelScroll);
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    painelContas,
-                    "Contas com saldo maior que R$10.000",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-        });
-
-        //Botao de calcular saldo total
-        botaoCalcularTotal.addActionListener(e -> {
-            double total = cs.calcularTotal();
-            String mensagem = "Saldo total: R$" + total;
-            MensagemGUI.exibirMensagem(mensagem);
-        });
-
-        //Botao de agrupar saldos
-        botaoAgruparSaldos.addActionListener(e -> {
-            Map<String, List<ContaCorrente>> contasAgrupadas = cs.agruparSaldos();
-            MensagemGUI.exibirMensagem(contasAgrupadas.toString());
-        });
-
-        //Painel de adicionais
-        JPanel painelAdicionais = new JPanel();
-        painelAdicionais.setBorder(BorderFactory.createTitledBorder("Adicionais"));
-        painelAdicionais.add(botaoFiltrarMaiorDezMil);
-        painelAdicionais.add(botaoCalcularTotal);
-        painelAdicionais.add(botaoAgruparSaldos);
-
-        //Posicionando os painéis
-        add(painelListaContas, BorderLayout.CENTER);
-        add(painelBotoes, BorderLayout.NORTH);
-        add(painelAdicionais, BorderLayout.SOUTH);
-         */
     }
 
-    private void carregarContas() {
-        this.listModel.clear();
-        for (ContaCorrente c : cs.contas) { listModel.addElement(c); }
+    private void configurarEventos() {
+        //OperacoesContaPanel
+        operacoesContaPanel.getBotaoSacar().addActionListener(this::sacar);
+        operacoesContaPanel.getBotaoDepositar().addActionListener(this::depositar);
+        operacoesContaPanel.getBotaoTarifa().addActionListener(this::calcularTarifa);
+        operacoesContaPanel.getBotaoAdicionar().addActionListener(this::adicionarConta);
+        //RelatoriosContasPanel
+        relatoriosContasPanel.getBotaoFiltrarDez().addActionListener(this::filtrarDezMil);
+        relatoriosContasPanel.getBotaoTotal().addActionListener(this::calcularTotal);
+        relatoriosContasPanel.getBotaoAgrupar().addActionListener(this::agruparSaldos);
+        relatoriosContasPanel.getBotaoFiltrarCinco().addActionListener(this::filtrarCincoMil);
+        relatoriosContasPanel.getBotaoFiltrarPar().addActionListener(this::filtrarNumeroPar);
+        //OrdenarContasPanel
+        ordenarContasPanel.getBotaoOrdenarSaldo().addActionListener(this::ordenarPorSaldo);
+        ordenarContasPanel.getBotaoOrdenarTitular().addActionListener(this::ordenarPorTitular);
+        ordenarContasPanel.getBotaoOrdenarPadrao().addActionListener(this::ordenarPadrao);
+    }
+
+    private void sacar(ActionEvent e) {
+        ContaCorrente conta = listaContasPanel.getContaSelecionada();
+
+        if (conta == null) {
+            MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
+            return;
+        }
+
+        try {
+          String valorSaqueString = MensagemGUI.receberInput("Valor para saque:");
+          if (valorSaqueString == null) { return; }
+
+          double valorSaque = Double.parseDouble(valorSaqueString);
+
+          conta.sacar(valorSaque);
+          listaContasPanel.carregarContas(cs.contas);
+
+          MensagemGUI.exibirMensagem("Sucesso ao sacar!");
+        } catch (OperacaoException ex) {
+            MensagemGUI.exibirErro("Erro de operação:\n" + ex.getMessage());
+        } catch (Exception ex) {
+            MensagemGUI.exibirErro("Erro ao sacar:\n" + ex.getMessage());
+        }
+    }
+
+    private void depositar(ActionEvent e) {
+        ContaCorrente conta = listaContasPanel.getContaSelecionada();
+
+        if (conta == null) {
+            MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
+            return;
+        }
+
+        try {
+            String valorDepositoString = MensagemGUI.receberInput("Valor para depósito:");
+            if (valorDepositoString == null) { return; }
+
+            double valorDeposito = Double.parseDouble(valorDepositoString);
+
+            conta.depositar(valorDeposito);
+            listaContasPanel.carregarContas(cs.contas);
+
+            MensagemGUI.exibirMensagem("Sucesso ao depositar!");
+        } catch (OperacaoException ex) {
+            MensagemGUI.exibirErro("Erro de operação:\n" + ex.getMessage());
+        } catch (Exception ex) {
+            MensagemGUI.exibirErro("Erro ao depositar:\n" + ex.getMessage());
+        }
+    }
+
+    private void adicionarConta(ActionEvent e) {
+        AdicionarContaPanel adicionarContaPanel = new AdicionarContaPanel();
+
+        int resultado = JOptionPane.showConfirmDialog(
+                this,
+                adicionarContaPanel,
+                "Adicionar Conta",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (resultado != JOptionPane.OK_OPTION) { return; }
+
+        try {
+            int numero = adicionarContaPanel.getNumero();
+            String titular = adicionarContaPanel.getTitular();
+
+            if (titular.isEmpty()) { throw new Exception("O titular não pode ser vazio."); }
+            cs.contas.add(new ContaCorrente(numero, titular, 0));
+            listaContasPanel.carregarContas(cs.contas);
+
+            MensagemGUI.exibirMensagem("Conta adicionada com sucesso!");
+        } catch (Exception ex) {
+            MensagemGUI.exibirErro("Erro ao adicionar conta:\n" + ex.getMessage());
+        }
+    }
+
+    private void filtrarDezMil(ActionEvent e) {
+        List<ContaCorrente> contasFiltradas = cs.filtrarMaiorDezMil();
+
+        StringBuilder resultado = new StringBuilder();
+        for (ContaCorrente c : contasFiltradas) {
+            resultado.append(c).append("\n");
+        }
+
+        JTextArea areaTexto = new JTextArea(resultado.toString());
+        areaTexto.setEditable(false);
+
+        JScrollPane scrollPane = new JScrollPane(areaTexto);
+        scrollPane.setPreferredSize(new Dimension(300, 250));
+
+        MensagemGUI.exibirObjeto(scrollPane, "Contas com saldo maior que R$10.000,00");
+    }
+
+    private void calcularTotal(ActionEvent e) {
+        double total = cs.calcularTotal();
+        String mensagem = String.format("Saldo total: R$%.2f", total);
+        MensagemGUI.exibirMensagem(mensagem);
+    }
+
+    private void agruparSaldos(ActionEvent e) {
+        Map<String, List<ContaCorrente>> contasAgrupadas = cs.agruparSaldos();
+        StringBuilder resultado = new StringBuilder();
+
+        contasAgrupadas.forEach((grupo, contas) -> {
+            resultado.append(String.format("==== %s ====", grupo)).append("\n");
+
+            for (ContaCorrente c : contas) {
+                resultado.append(c).append("\n");
+            }
+        });
+
+        JTextArea areaTexto = new JTextArea(resultado.toString());
+        areaTexto.setEditable(false);
+
+        JScrollPane scrollPane = new JScrollPane(areaTexto);
+        scrollPane.setPreferredSize(new Dimension(300, 250));
+
+        MensagemGUI.exibirObjeto(scrollPane, "Contas agrupadas por saldo");
+    }
+
+    private void filtrarCincoMil(ActionEvent e) {
+        List<ContaCorrente> contasFiltradas = cs.filtrarMaiorCincoMil();
+
+        StringBuilder resultado = new StringBuilder();
+        for (ContaCorrente c : contasFiltradas) {
+            resultado.append(c).append("\n");
+        }
+
+        JTextArea areaTexto = new JTextArea(resultado.toString());
+        areaTexto.setEditable(false);
+
+        JScrollPane scrollPane = new JScrollPane(areaTexto);
+        scrollPane.setPreferredSize(new Dimension(300, 250));
+
+        MensagemGUI.exibirObjeto(scrollPane, "Contas com saldo maior que R$5.000,00");
+    }
+
+    private void filtrarNumeroPar(ActionEvent e) {
+        List<ContaCorrente> contasFiltradas = cs.filtrarNumeroPar();
+
+        StringBuilder resultado = new StringBuilder();
+        for (ContaCorrente c : contasFiltradas) {
+            resultado.append(c).append("\n");
+        }
+
+        JTextArea areaTexto = new JTextArea(resultado.toString());
+        areaTexto.setEditable(false);
+
+        JScrollPane scrollPane = new JScrollPane(areaTexto);
+        scrollPane.setPreferredSize(new Dimension(300, 250));
+
+        MensagemGUI.exibirObjeto(scrollPane, "Contas com número par");
+    }
+
+
+    private void ordenarPorSaldo(ActionEvent e) {
+        this.listaContasPanel.carregarContas(this.cs.ordenarPorSaldoDecrescente());
+    }
+
+    private void ordenarPorTitular(ActionEvent e) {
+        this.listaContasPanel.carregarContas(this.cs.ordenarPorTitular());
+    }
+
+    private void ordenarPadrao(ActionEvent e) {
+        this.listaContasPanel.carregarContas(this.cs.contas);
+    }
+
+    private void calcularTarifa(ActionEvent e) {
+        ContaCorrente conta = listaContasPanel.getContaSelecionada();
+
+        if (conta == null) {
+            MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
+            return;
+        }
+
+        String[] opcoes = { "(a) Fixa", "(b) Percentual", "(c) Isenta" };
+
+        int resultado = MensagemGUI.receberEscolha(
+                opcoes,
+                "Estratégia da tarifa",
+                "Escolha uma estratégia:"
+        );
+
+        if (resultado == -1) { return; }
+
+        TarifaStrategy strategy = switch (resultado) {
+            case 0 -> TarifaStrategy.FIXA;
+            case 1 -> TarifaStrategy.PERCENTUAL;
+            default -> TarifaStrategy.ISENTA;
+        };
+
+        double tarifa = TarifaService.calcularTarifa(conta, strategy);
+
+        String mensagem = String.format(
+                """
+                Conta: %d
+                Titular: %s
+                Saldo: %.2f
+                Tarifa: %.2f
+                Final: %.2f
+                """,
+                conta.getNumero(),
+                conta.getTitular(),
+                conta.getSaldo(),
+                tarifa,
+                conta.getSaldo() + tarifa
+        );
+
+        MensagemGUI.exibirMensagem(mensagem);
     }
 }
