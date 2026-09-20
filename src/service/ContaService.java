@@ -1,5 +1,6 @@
 package service;
 
+import dao.ContaDAO;
 import exception.CarregarContasException;
 import exception.SalvarContasException;
 import model.Conta;
@@ -8,6 +9,7 @@ import model.ContaCorrente;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -16,40 +18,9 @@ import static java.util.stream.Collectors.toList;
 
 public class ContaService {
     public ArrayList<ContaCorrente> contas = new ArrayList<>();
-    private final Path caminhoLeitura = Paths.get("contas.txt");
-    private final Path caminhoSalvamento = Paths.get("contas_atualizadas.txt");
 
-    public void lerContas() throws CarregarContasException {
-        try {
-            List<String> linhas = Files.readAllLines(this.caminhoLeitura);
-
-            for (String linha : linhas) {
-                String[] dados = linha.split(",");
-
-                int numero = Integer.parseInt(dados[0]);
-                String titular = dados[1].trim();
-                double saldo = Double.parseDouble(dados[2]);
-
-                this.contas.add(new ContaCorrente(numero, titular, saldo));
-            }
-        } catch (Exception e) {
-            throw new CarregarContasException(e.getMessage());
-        }
-    }
-
-    public void salvarContas() throws SalvarContasException {
-        try {
-            List<String> linhas = new ArrayList<>();
-
-            for (Conta c : contas) {
-                String dados = c.getNumero() + "," + c.getTitular() + "," + c.getSaldo();
-                linhas.add(dados);
-            }
-
-            Files.write(caminhoSalvamento, linhas);
-        } catch (Exception e) {
-            throw new SalvarContasException(e.getMessage());
-        }
+    public void carregarContas() throws SQLException {
+        this.contas = ContaDAO.listar();
     }
 
     public List<ContaCorrente> filtrarMaiorDezMil() {
@@ -101,3 +72,4 @@ public class ContaService {
         return this.contas.stream().sorted(porTitular).toList();
     }
 }
+

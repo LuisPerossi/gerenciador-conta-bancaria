@@ -6,7 +6,7 @@ import view.MensagemGUI;
 void main() {
     try {
         ContaService cs = new ContaService();
-        cs.lerContas();
+        cs.carregarContas();
 
         ContaGUI gui = new ContaGUI(cs);
         gui.setVisible(true);

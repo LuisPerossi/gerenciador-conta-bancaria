@@ -40,4 +40,14 @@ public final class MensagemGUI {
                 opcoes[0]
         );
     }
+
+    public static int confirmar(String mensagem) {
+        return JOptionPane.showConfirmDialog(
+                pai,
+                mensagem,
+                "Confirmar",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+    }
 }

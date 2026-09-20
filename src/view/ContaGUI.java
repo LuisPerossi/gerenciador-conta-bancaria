@@ -1,7 +1,7 @@
 package view;
 
+import dao.ContaDAO;
 import exception.OperacaoException;
-import exception.SalvarContasException;
 import model.ContaCorrente;
 import service.ContaService;
 import service.TarifaService;
@@ -11,8 +11,7 @@ import view.ContaPanels.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +28,7 @@ public class ContaGUI extends JFrame {
 
         //Configurações da janela
         this.setTitle("Gerenciador de Contas Bancárias");
-        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setLayout(new BorderLayout());
         this.setSize(650, 400);
         this.setResizable(false);
@@ -49,19 +48,6 @@ public class ContaGUI extends JFrame {
         this.add(ordenarContasPanel, BorderLayout.WEST);
         this.add(listaContasPanel, BorderLayout.CENTER);
         this.add(relatoriosContasPanel, BorderLayout.SOUTH);
-
-        //Adicionando um listener para salvar as contas ao fechar
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-            try {
-                cs.salvarContas();
-                dispose();
-            } catch (SalvarContasException ex) {
-                MensagemGUI.exibirErro("Erro ao salvar contas:\n" + ex.getMessage());
-            }
-            }
-        });
     }
 
     private void configurarEventos() {
@@ -70,6 +56,7 @@ public class ContaGUI extends JFrame {
         operacoesContaPanel.getBotaoDepositar().addActionListener(this::depositar);
         operacoesContaPanel.getBotaoTarifa().addActionListener(this::calcularTarifa);
         operacoesContaPanel.getBotaoAdicionar().addActionListener(this::adicionarConta);
+        operacoesContaPanel.getBotaoRemover().addActionListener(this::removerConta);
         //RelatoriosContasPanel
         relatoriosContasPanel.getBotaoFiltrarDez().addActionListener(this::filtrarDezMil);
         relatoriosContasPanel.getBotaoTotal().addActionListener(this::calcularTotal);
@@ -97,6 +84,7 @@ public class ContaGUI extends JFrame {
           double valorSaque = Double.parseDouble(valorSaqueString);
 
           conta.sacar(valorSaque);
+          ContaDAO.atualizarSaldo(conta.getNumero(), conta.getSaldo());
           listaContasPanel.carregarContas(cs.contas);
 
           MensagemGUI.exibirMensagem("Sucesso ao sacar!");
@@ -122,6 +110,7 @@ public class ContaGUI extends JFrame {
             double valorDeposito = Double.parseDouble(valorDepositoString);
 
             conta.depositar(valorDeposito);
+            ContaDAO.atualizarSaldo(conta.getNumero(), conta.getSaldo());
             listaContasPanel.carregarContas(cs.contas);
 
             MensagemGUI.exibirMensagem("Sucesso ao depositar!");
@@ -146,16 +135,41 @@ public class ContaGUI extends JFrame {
         if (resultado != JOptionPane.OK_OPTION) { return; }
 
         try {
-            int numero = adicionarContaPanel.getNumero();
             String titular = adicionarContaPanel.getTitular();
+            double saldo = adicionarContaPanel.getSaldo();
 
             if (titular.isEmpty()) { throw new Exception("O titular não pode ser vazio."); }
-            cs.contas.add(new ContaCorrente(numero, titular, 0));
+            if (saldo < 0) { throw new Exception("O saldo não pode ser negativo."); }
+
+            int numero = ContaDAO.inserir(new ContaCorrente(-1, titular, saldo));
+            cs.contas.add(new ContaCorrente(numero, titular, saldo));
             listaContasPanel.carregarContas(cs.contas);
 
             MensagemGUI.exibirMensagem("Conta adicionada com sucesso!");
         } catch (Exception ex) {
             MensagemGUI.exibirErro("Erro ao adicionar conta:\n" + ex.getMessage());
+        }
+    }
+
+    private void removerConta(ActionEvent e) {
+        ContaCorrente conta = listaContasPanel.getContaSelecionada();
+
+        if (conta == null) {
+            MensagemGUI.exibirAlerta("Nenhuma conta selecionada.");
+            return;
+        }
+
+        try {
+            int confirm = MensagemGUI.confirmar("Remover conta?\n" + conta);
+            if (confirm != JOptionPane.OK_OPTION) { return; }
+
+            cs.contas.remove(conta);
+            ContaDAO.remover(conta.getNumero());
+            listaContasPanel.carregarContas(cs.contas);
+
+            MensagemGUI.exibirMensagem("Conta removida com sucesso!");
+        } catch (SQLException ex) {
+            MensagemGUI.exibirErro("Erro ao remover conta: " + ex.getMessage());
         }
     }
 

@@ -1,4 +1,0 @@
-9,Luis Perossi,200.0
-7,Felipe Leandro,100.0
-8,Mateus Fonseca,39000.0
-13,Paolo Hernandez,7500.0
