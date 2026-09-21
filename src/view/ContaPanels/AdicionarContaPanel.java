@@ -9,8 +9,10 @@ public class AdicionarContaPanel extends JPanel {
 
     public AdicionarContaPanel() {
         this.setLayout(new GridLayout(2,2));
+
         this.add(new JLabel("Nome do titular:"));
         this.add(campoTitular);
+
         this.add(new JLabel("Saldo da conta:"));
         this.add(campoSaldo);
     }

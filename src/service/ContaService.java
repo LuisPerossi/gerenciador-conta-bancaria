@@ -1,14 +1,8 @@
 package service;
 
 import dao.ContaDAO;
-import exception.CarregarContasException;
-import exception.SalvarContasException;
-import model.Conta;
 import model.ContaCorrente;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Predicate;
@@ -23,11 +17,17 @@ public class ContaService {
         this.contas = ContaDAO.listar();
     }
 
-    public List<ContaCorrente> filtrarMaiorDezMil() {
-        return this.contas
-            .stream()
-            .filter(c -> c.getSaldo() > 10000)
-            .toList();
+    public ContaCorrente buscarPorNumero(int numero) {
+        Predicate<ContaCorrente> porNumero = c -> c.getNumero() == numero;
+        return contas.stream().filter(porNumero).findFirst().orElse(null);
+    }
+
+    public List<ContaCorrente> filtrarContas(Predicate<ContaCorrente> predicate) {
+        return this.contas.stream().filter(predicate).toList();
+    }
+
+    public List<ContaCorrente> ordenarContas(Comparator<ContaCorrente> comparator) {
+        return this.contas.stream().sorted(comparator).toList();
     }
 
     public double calcularTotal() {
@@ -48,28 +48,6 @@ public class ContaService {
                 TreeMap::new,
                 toList()
             ));
-    }
-
-    public List<ContaCorrente> filtrarMaiorCincoMil() {
-        Predicate<ContaCorrente> maiorCincoMil = (c) -> c.getSaldo() > 5000;
-        return this.contas.stream().filter(maiorCincoMil).toList();
-    }
-
-    public List<ContaCorrente> filtrarNumeroPar() {
-        Predicate<ContaCorrente> numeroPar = (c) -> c.getNumero() % 2 == 0;
-        return this.contas.stream().filter(numeroPar).toList();
-    }
-
-    public List<ContaCorrente> ordenarPorSaldoDecrescente() {
-        Comparator<Conta> porSaldoDecrescente = (a, b) -> Double.compare(a.getSaldo(), b.getSaldo());
-        return this.contas.stream().sorted(porSaldoDecrescente).toList();
-    }
-
-    public List<ContaCorrente> ordenarPorTitular() {
-        Comparator<ContaCorrente> porTitular =
-                (a, b) ->
-                        String.CASE_INSENSITIVE_ORDER.compare(a.getTitular(), b.getTitular());
-        return this.contas.stream().sorted(porTitular).toList();
     }
 }
 
