@@ -1,4 +1,4 @@
-package view.ContaPanels;
+package view.panels;
 
 import model.ContaCorrente;
 import service.ContaService;
@@ -47,6 +47,6 @@ public class OrdenarContasPanel extends JPanel {
         });
 
         //Ordenar por número (padrão)
-        botaoOrdenarPadrao.addActionListener(e -> this.listaContasPanel.carregarContas(this.cs.contas));
+        botaoOrdenarPadrao.addActionListener(e -> this.listaContasPanel.carregarContas(this.cs.getContas()));
     }
 }

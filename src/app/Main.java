@@ -13,9 +13,9 @@ void main() {
         gui.setVisible(true);
 
         MensagemGUI.setPai(gui);
-    } catch (SQLException e) {
-        MensagemGUI.exibirErro("Erro ao carregar contas:\n" + e.getMessage());
-    } catch (Exception e) {
-        MensagemGUI.exibirErro("Erro inesperado:\n" + e.getMessage());
+    } catch (SQLException ex) {
+        MensagemGUI.exibirErro("Erro ao carregar contas:\n" + ex.getMessage());
+    } catch (Exception ex) {
+        MensagemGUI.exibirErro("Erro inesperado:\n" + ex.getMessage());
     }
 }

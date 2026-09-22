@@ -1,4 +1,4 @@
-package view.ContaPanels;
+package view.panels;
 
 import javax.swing.*;
 import java.awt.*;

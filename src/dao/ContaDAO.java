@@ -1,17 +1,21 @@
 package dao;
 
+import exception.ContaNaoEncontradaException;
 import model.ContaCorrente;
 
 import java.sql.*;
 import java.util.ArrayList;
 
 public class ContaDAO {
-    public static int inserir(ContaCorrente conta) throws SQLException {
-        try (Connection conn = Conexao.getConnection()) {
-            String sql = "INSERT INTO contas (titular, saldo) VALUES (?, ?)";
-            PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            stmt.setString(1, conta.getTitular());
-            stmt.setDouble(2, conta.getSaldo());
+    public static int inserir(String titular, double saldo) throws SQLException {
+        String sql = "INSERT INTO contas (titular, saldo) VALUES (?, ?)";
+
+        try (
+            Connection conn = Conexao.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+        ) {
+            stmt.setString(1, titular);
+            stmt.setDouble(2, saldo);
             stmt.executeUpdate();
 
             try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -24,19 +28,49 @@ public class ContaDAO {
         }
     }
 
-    public static ArrayList<ContaCorrente> listar() throws SQLException {
-        try (Connection conn = Conexao.getConnection()) {
-            ArrayList<ContaCorrente> contas = new ArrayList<>();
+    public static void depositar(int numero, double valor) throws SQLException, ContaNaoEncontradaException {
+        String sql = "UPDATE contas SET saldo = saldo + ? WHERE numero = ?";
 
-            String sql = "SELECT * FROM contas";
+        try (
+                Connection conn = Conexao.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+            stmt.setDouble(1, valor);
+            stmt.setInt(2, numero);
+            int linhasAfetadas = stmt.executeUpdate();
+            if (linhasAfetadas == 0) { throw new ContaNaoEncontradaException("Conta não encontrada."); }
+        }
+    }
+
+    public static void sacar(int numero, double valor) throws SQLException, ContaNaoEncontradaException {
+        String sql = "UPDATE contas SET saldo = saldo - ? WHERE numero = ?";
+
+        try (
+                Connection conn = Conexao.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+            stmt.setDouble(1, valor);
+            stmt.setInt(2, numero);
+            int linhasAfetadas = stmt.executeUpdate();
+            if (linhasAfetadas == 0) { throw new ContaNaoEncontradaException("Conta não encontrada."); }
+        }
+    }
+
+    public static ArrayList<ContaCorrente> listar() throws SQLException {
+        String sql = "SELECT numero, titular, saldo FROM contas";
+
+        try (
+            Connection conn = Conexao.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql);
-            ResultSet rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery()
+        ) {
+            ArrayList<ContaCorrente> contas = new ArrayList<>();
 
             while (rs.next()) {
                 contas.add(new ContaCorrente(
-                        rs.getInt("numero"),
-                        rs.getString("titular"),
-                        rs.getDouble("saldo"))
+                    rs.getInt("numero"),
+                    rs.getString("titular"),
+                    rs.getDouble("saldo"))
                 );
             }
 
@@ -45,55 +79,66 @@ public class ContaDAO {
     }
 
     public static ContaCorrente buscarPorNumero(int numero) throws SQLException {
-        try (Connection conn = Conexao.getConnection()) {
-            String sql = "SELECT * FROM contas WHERE numero = ?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setInt(1, numero);
-            ResultSet rs = stmt.executeQuery();
+        String sql = "SELECT numero, titular, saldo FROM contas WHERE numero = ?";
 
-            if (rs.next()) {
-                return new ContaCorrente(
+        try (
+            Connection conn = Conexao.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+            stmt.setInt(1, numero);
+
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new ContaCorrente(
                         rs.getInt("numero"),
                         rs.getString("titular"),
                         rs.getDouble("saldo")
-                );
+                    );
+                }
             }
 
             return null;
         }
     }
 
-    public static void atualizarSaldo(int numero, double novoSaldo) throws SQLException {
-        try (Connection conn = Conexao.getConnection()) {
-            String sql = "UPDATE contas SET saldo = ? WHERE numero = ?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
+    public static void atualizarSaldo(int numero, double novoSaldo) throws SQLException, ContaNaoEncontradaException {
+        String sql = "UPDATE contas SET saldo = ? WHERE numero = ?";
+
+        try (
+            Connection conn = Conexao.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
             stmt.setDouble(1, novoSaldo);
             stmt.setInt(2, numero);
             int linhasAfetadas = stmt.executeUpdate();
-
-            if (linhasAfetadas == 0) { throw new SQLException("Conta não encontrada: " + numero); }
+            if (linhasAfetadas == 0) { throw new ContaNaoEncontradaException("Conta não encontrada."); }
         }
     }
 
-    public static void remover(int numero) throws SQLException {
-        try (Connection conn = Conexao.getConnection()) {
-            String sql = "DELETE FROM contas WHERE numero = ?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
+    public static void remover(int numero) throws SQLException, ContaNaoEncontradaException {
+        String sql = "DELETE FROM contas WHERE numero = ?";
+
+        try (
+            Connection conn = Conexao.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
             stmt.setInt(1, numero);
             int linhasAfetadas = stmt.executeUpdate();
-
-            if (linhasAfetadas == 0) { throw new SQLException("Conta não encontrada: " + numero); }
+            if (linhasAfetadas == 0) { throw new ContaNaoEncontradaException("Conta não encontrada."); }
         }
     }
 
-    public static void transferir(int numeroOrigem, int numeroDestino, double valor) throws SQLException {
+    public static void transferir(int numeroOrigem, int numeroDestino, double valor)
+            throws SQLException, ContaNaoEncontradaException
+    {
         String debitoSql = "UPDATE contas SET saldo = saldo - ? WHERE numero = ?";
         String creditoSql = "UPDATE contas SET saldo = saldo + ? WHERE numero = ?";
 
         try (
             Connection conn = Conexao.getConnection();
             PreparedStatement debitoStmt = conn.prepareStatement(debitoSql);
-            PreparedStatement creditoStmt = conn.prepareStatement(creditoSql);
+            PreparedStatement creditoStmt = conn.prepareStatement(creditoSql)
         ) {
             conn.setAutoCommit(false);
 
@@ -103,7 +148,7 @@ public class ContaDAO {
                 int linhasDebito = debitoStmt.executeUpdate();
 
                 if (linhasDebito == 0) {
-                    throw new SQLException(String.format("Conta de origem não encontrada: %s.", numeroOrigem));
+                    throw new ContaNaoEncontradaException("Conta de origem não encontrada.");
                 }
 
                 creditoStmt.setDouble(1, valor);
@@ -111,11 +156,11 @@ public class ContaDAO {
                 int linhasCredito = creditoStmt.executeUpdate();
 
                 if (linhasCredito == 0) {
-                    throw new SQLException(String.format("Conta de destino não encontrada: %s.", numeroDestino));
+                    throw new ContaNaoEncontradaException("Conta de destino não encontrada.");
                 }
 
                 conn.commit();
-            } catch (SQLException ex) {
+            } catch (SQLException | ContaNaoEncontradaException ex) {
                 conn.rollback();
                 throw ex;
             } finally {

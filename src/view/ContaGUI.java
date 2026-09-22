@@ -2,7 +2,7 @@ package view;
 
 
 import service.ContaService;
-import view.ContaPanels.*;
+import view.panels.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,7 +26,7 @@ public class ContaGUI extends JFrame {
         RelatoriosContasPanel relatoriosContasPanel = new RelatoriosContasPanel(cs);
 
         //Carregando as contas
-        listaContasPanel.carregarContas(cs.contas);
+        listaContasPanel.carregarContas(cs.getContas());
 
         //Adicionando painéis
         this.add(operacoesContaPanel, BorderLayout.NORTH);

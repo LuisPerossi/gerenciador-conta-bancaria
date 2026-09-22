@@ -1,7 +1,7 @@
 package model;
 
 import exception.SaldoInsuficienteException;
-import exception.ValorNegativoException;
+import exception.ValorInvalidoException;
 
 public abstract class Conta {
     protected int numero;
@@ -22,15 +22,15 @@ public abstract class Conta {
         );
     }
 
-    public void depositar(double valor) throws ValorNegativoException {
+    public void depositar(double valor) throws ValorInvalidoException {
         if (valor < 0) {
-            throw new ValorNegativoException("O valor do depósito deve ser positivo.");
+            throw new ValorInvalidoException("O valor do depósito deve ser positivo.");
         }
 
         this.saldo += valor;
     }
 
-    public abstract void sacar(double valor) throws SaldoInsuficienteException, ValorNegativoException;
+    public abstract void sacar(double valor) throws SaldoInsuficienteException, ValorInvalidoException;
 
     public int getNumero() {
         return numero;
@@ -41,4 +41,5 @@ public abstract class Conta {
     public double getSaldo() {
         return saldo;
     }
+    public void setSaldo(double saldo) { this.saldo = saldo; }
 }

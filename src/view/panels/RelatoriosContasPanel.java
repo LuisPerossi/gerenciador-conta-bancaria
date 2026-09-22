@@ -1,4 +1,4 @@
-package view.ContaPanels;
+package view.panels;
 
 import model.ContaCorrente;
 import service.ContaService;

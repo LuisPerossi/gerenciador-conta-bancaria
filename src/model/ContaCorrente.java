@@ -1,7 +1,7 @@
 package model;
 
 import exception.SaldoInsuficienteException;
-import exception.ValorNegativoException;
+import exception.ValorInvalidoException;
 
 public class ContaCorrente extends Conta {
 
@@ -10,9 +10,9 @@ public class ContaCorrente extends Conta {
     }
 
     @Override
-    public void sacar(double valor) throws SaldoInsuficienteException, ValorNegativoException {
+    public void sacar(double valor) throws SaldoInsuficienteException, ValorInvalidoException {
         if (valor < 0) {
-            throw new ValorNegativoException("O valor do saque deve ser positivo.");
+            throw new ValorInvalidoException("O valor do saque deve ser positivo.");
         }
 
         if (valor > this.saldo) {
